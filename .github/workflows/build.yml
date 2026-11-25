@@ -120,11 +120,10 @@ jobs:
 
       - name: Generate Release Notes
         id: notes
-        env:
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat > release_notes.md << 'EOF'
-## Pulse ${{ env.RELEASE_VERSION }}
+          VERSION="${{ steps.version.outputs.version }}"
+          cat > release_notes.md << 'RELEASE_EOF'
+## Pulse ${VERSION}
 
 ### 🎵 Fitur Utama
 - **Music Player**: Playback engine berbasis LavaPlayer (MP3, OGG, WAV, FLAC, M4A, AAC)
@@ -151,14 +150,14 @@ jobs:
 
 ### 📦 Install
 1. Install Fabric Loader 0.19.5 untuk Minecraft 1.21.11
-2. Taruh `pulse-${{ env.RELEASE_VERSION }}.jar` ke folder `mods`
+2. Taruh `pulse-${VERSION}.jar` ke folder `mods`
 3. Jalankan Minecraft
 
 ### 🔒 Catatan
 - YouTube playback tidak didukung (batasan YouTube Data API)
 - TikTok LIVE butuh EulerStream API key
 - Config di `.minecraft/config/pulse_config.json`
-EOF
+RELEASE_EOF
           echo "notes_path=release_notes.md" >> $GITHUB_OUTPUT
 
       - name: Create Release
