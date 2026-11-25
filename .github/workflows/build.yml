@@ -52,6 +52,7 @@ jobs:
           GRADLE_OPTS: ${{ env.GRADLE_OPTS }}
 
       - name: Verify JAR
+        id: jar
         run: |
           JAR_FILE=$(find build/libs -name "pulse-*.jar" | head -1)
           if [ -z "$JAR_FILE" ]; then
@@ -60,7 +61,6 @@ jobs:
           fi
           echo "✅ JAR found: $JAR_FILE"
           echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
-        id: jar
 
       - name: Verify JAR Contents
         run: |
@@ -102,12 +102,16 @@ jobs:
         id: jar
         run: |
           JAR_FILE=$(find artifacts -name "pulse-*.jar" | head -1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ JAR not found in artifacts!"
+            exit 1
+          fi
           echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
 
       - name: Extract Version from Tag
         id: version
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
             VERSION="${GITHUB_REF#refs/tags/}"
@@ -116,43 +120,44 @@ jobs:
 
       - name: Generate Release Notes
         id: notes
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          cat << EOF > release_notes.md
-## Pulse ${{ steps.version.outputs.version }}
+          cat > release_notes.md << 'EOF'
+## Pulse ${{ env.RELEASE_VERSION }}
 
 ### 🎵 Fitur Utama
 - **Music Player**: Playback engine berbasis LavaPlayer (MP3, OGG, WAV, FLAC, M4A, AAC)
 - **Local Library**: Scan folder musik, search, playlist management
 - **YouTube Connector**: OAuth2, browse playlist & search metadata
 - **TikTok LIVE**: EulerStream WebSocket, auto-reconnect, chat events
-- **Song Request System**: \`!req\` command, queue dengan cooldown/dedup/limit
+- **Song Request System**: `!req` command, queue dengan cooldown/dedup/limit
 - **Widget System**: 5 widget overlay (Music, Live, Queue, Chat, Notifications)
 - **Dark Glow UI**: GlassUI-inspired translucent panels, purple/cyan accents
 
 ### 🎮 Commands
-- \`!req <lagu>\` - Request lagu
-- \`!queue\` - Lihat antrean
-- \`!myreq\` - Request sendiri
-- \`!song\` - Lagu saat ini
-- \`!skip\` (mod) / \`!clear\` (streamer)
-- \`!help\` - Bantuan
+- `!req <lagu>` - Request lagu
+- `!queue` - Lihat antrean
+- `!myreq` - Request sendiri
+- `!song` - Lagu saat ini
+- `!skip` (mod) / `!clear` (streamer)
+- `!help` - Bantuan
 
 ### ⚙️ Keybinds Default
-- \`P\` - Buka Dashboard
-- \`M\` - Toggle Music Widget
-- \`N\` - Toggle Request Widget
-- \`K\` - Play/Pause
+- `P` - Buka Dashboard
+- `M` - Toggle Music Widget
+- `N` - Toggle Request Widget
+- `K` - Play/Pause
 
 ### 📦 Install
 1. Install Fabric Loader 0.19.5 untuk Minecraft 1.21.11
-2. Taruh \`pulse-${{ steps.version.outputs.version }}.jar\` ke folder \`mods\`
+2. Taruh `pulse-${{ env.RELEASE_VERSION }}.jar` ke folder `mods`
 3. Jalankan Minecraft
 
 ### 🔒 Catatan
 - YouTube playback tidak didukung (batasan YouTube Data API)
 - TikTok LIVE butuh EulerStream API key
-- Config di \`.minecraft/config/pulse_config.json\`
+- Config di `.minecraft/config/pulse_config.json`
 EOF
           echo "notes_path=release_notes.md" >> $GITHUB_OUTPUT
 
