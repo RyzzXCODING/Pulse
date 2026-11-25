@@ -1,0 +1,170 @@
+name: Build & Release Pulse
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  JAVA_VERSION: '21'
+  GRADLE_OPTS: '-Xmx3G -Dorg.gradle.daemon=false'
+
+jobs:
+  build:
+    name: Build Fabric Mod
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon --stacktrace
+        env:
+          GRADLE_OPTS: ${{ env.GRADLE_OPTS }}
+
+      - name: Verify JAR
+        run: |
+          JAR_FILE=$(find build/libs -name "pulse-*.jar" | head -1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ JAR not found!"
+            exit 1
+          fi
+          echo "✅ JAR found: $JAR_FILE"
+          echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
+        id: jar
+
+      - name: Verify JAR Contents
+        run: |
+          JAR_FILE="${{ steps.jar.outputs.jar_path }}"
+          echo "=== JAR Info ==="
+          ls -la "$JAR_FILE"
+          echo ""
+          echo "=== Manifest ==="
+          unzip -c "$JAR_FILE" META-INF/MANIFEST.MF
+          echo ""
+          echo "=== fabric.mod.json ==="
+          unzip -c "$JAR_FILE" fabric.mod.json
+          echo ""
+          echo "=== Entrypoints ==="
+          unzip -l "$JAR_FILE" | grep -E "(Pulse|PulseClient)\.class"
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulse-mod-jar
+          path: ${{ steps.jar.outputs.jar_path }}
+          retention-days: 30
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+
+    steps:
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pulse-mod-jar
+          path: artifacts
+
+      - name: Find JAR
+        id: jar
+        run: |
+          JAR_FILE=$(find artifacts -name "pulse-*.jar" | head -1)
+          echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
+
+      - name: Extract Version from Tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cat << EOF > release_notes.md
+## Pulse ${{ steps.version.outputs.version }}
+
+### 🎵 Fitur Utama
+- **Music Player**: Playback engine berbasis LavaPlayer (MP3, OGG, WAV, FLAC, M4A, AAC)
+- **Local Library**: Scan folder musik, search, playlist management
+- **YouTube Connector**: OAuth2, browse playlist & search metadata
+- **TikTok LIVE**: EulerStream WebSocket, auto-reconnect, chat events
+- **Song Request System**: \`!req\` command, queue dengan cooldown/dedup/limit
+- **Widget System**: 5 widget overlay (Music, Live, Queue, Chat, Notifications)
+- **Dark Glow UI**: GlassUI-inspired translucent panels, purple/cyan accents
+
+### 🎮 Commands
+- \`!req <lagu>\` - Request lagu
+- \`!queue\` - Lihat antrean
+- \`!myreq\` - Request sendiri
+- \`!song\` - Lagu saat ini
+- \`!skip\` (mod) / \`!clear\` (streamer)
+- \`!help\` - Bantuan
+
+### ⚙️ Keybinds Default
+- \`P\` - Buka Dashboard
+- \`M\` - Toggle Music Widget
+- \`N\` - Toggle Request Widget
+- \`K\` - Play/Pause
+
+### 📦 Install
+1. Install Fabric Loader 0.19.5 untuk Minecraft 1.21.11
+2. Taruh \`pulse-${{ steps.version.outputs.version }}.jar\` ke folder \`mods\`
+3. Jalankan Minecraft
+
+### 🔒 Catatan
+- YouTube playback tidak didukung (batasan YouTube Data API)
+- TikTok LIVE butuh EulerStream API key
+- Config di \`.minecraft/config/pulse_config.json\`
+EOF
+          echo "notes_path=release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Pulse ${{ steps.version.outputs.version }}
+          body_path: ${{ steps.notes.outputs.notes_path }}
+          files: ${{ steps.jar.outputs.jar_path }}
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
