@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "pulse",
+  "version": "${version}",
+  "name": "Pulse",
+  "description": "Pulse adalah mod Minecraft Fabric yang menghadirkan pemutar musik, widget media interaktif, integrasi platform musik, serta sistem Song Request TikTok LIVE melalui EulerStream.",
+  "authors": [
+    "Alpoyy"
+  ],
+  "contact": {
+    "homepage": "https://github.com/RyzzXCODING/Pulse",
+    "sources": "https://github.com/RyzzXCODING/Pulse",
+    "issues": "https://github.com/RyzzXCODING/Pulse/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/pulse/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "com.alpoyy.pulse.Pulse"
+    ],
+    "client": [
+      "com.alpoyy.pulse.PulseClient"
+    ]
+  },
+  "mixins": [
+    "pulse.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "cloth-config": "*"
+  }
+}

@@ -1,0 +1,80 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = "https://maven.fabricmc.net/" }
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath "net.fabricmc:fabric-loom:1.5-SNAPSHOT"
+    }
+}
+
+apply plugin: "java"
+apply plugin: "fabric-loom"
+
+group = "com.alpoyy"
+version = "1.0.0"
+archivesBaseName = "pulse"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+loom {
+    mods {
+        pulse {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url = "https://maven.fabricmc.net/" }
+    maven { url = "https://jitpack.io" }
+    maven { url = "https://maven.shedaniel.me/" }
+}
+
+// Apply repositories to all configurations
+configurations.all {
+    repositories {
+        mavenCentral()
+        maven { url = "https://maven.fabricmc.net/" }
+        maven { url = "https://jitpack.io" }
+        maven { url = "https://maven.shedaniel.me/" }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:1.21.11"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:0.19.5"
+    
+    // External dependencies - use implementation for regular libraries
+    implementation "com.sedmelluq:lavaplayer:1.4.22"
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.google.code.gson:gson:2.11.0"
+    implementation "me.shedaniel:cloth-config:15.0.129"
+    implementation "org.json:json:20240303"
+}
+
+jar {
+    manifest {
+        attributes(
+            "Fabric-Mod-ID": "pulse",
+            "Fabric-Mod-Version": project.version,
+            "Fabric-Mod-Name": "Pulse",
+            "Fabric-Mod-Authors": "Alpoyy",
+            "Fabric-Mod-Description": "Pulse adalah mod Minecraft Fabric yang menghadirkan pemutar musik, widget media interaktif, integrasi platform musik, serta sistem Song Request TikTok LIVE melalui EulerStream."
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.alpoyy.pulse.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "KeyBindingMixin",
+    "ScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

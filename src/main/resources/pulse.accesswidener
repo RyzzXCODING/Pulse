@@ -1,0 +1,14 @@
+# Pulse Access Widener
+# Provides access to private/protected fields and methods for client-side integration
+
+# Minecraft Client
+net.minecraft.client.MinecraftClient
+
+# KeyBinding
+net.minecraft.client.option.KeyBinding
+
+# Screen
+net.minecraft.client.gui.screen.Screen
+
+# MusicDiscItem for custom music discs
+net.minecraft.item.MusicDiscItem
